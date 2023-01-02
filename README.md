@@ -68,3 +68,128 @@ public class Movement : MonoBehaviour
     }
 }
 ```
+
+## Animation
+```cs
+using UnityEngine;
+
+public class AnimChange : MonoBehaviour
+{
+    // An array of sprites that we want to cycle through when the character is idle
+    public Sprite[] idleSprites;
+
+    // The sprite that we want to switch to when the "D" key is pressed
+    public Sprite newSprite;
+
+    // The sprite that we want to switch to when the "A" key is pressed
+    public Sprite anotherSprite;
+
+    // The delay between each sprite it cycles through (in seconds)
+    public float delay = 1.5f;
+
+    // A reference to the sprite renderer component
+    private SpriteRenderer spriteRenderer;
+
+    // The current index in the idleSprites array
+    private int currentIdleSpriteIndex = 0;
+
+    // The time that the current idle sprite was last changed
+    private float lastIdleSpriteChangeTime;
+
+    void Start()
+    {
+        // Get a reference to the sprite renderer component
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    void Update()
+    {
+        // If the player is not pressing the "D" key or the "A" key
+        if (!Input.GetKey(KeyCode.D) && !Input.GetKey(KeyCode.A))
+        {
+            // If it has been the specified delay since the last time the idle sprite was changed
+            if (Time.time - lastIdleSpriteChangeTime > delay)
+            {
+                // Increment the current idle sprite index
+                currentIdleSpriteIndex++;
+
+                // If the current idle sprite index is greater than or equal to the length of the idleSprites array
+                if (currentIdleSpriteIndex >= idleSprites.Length)
+                {
+                    // Reset the current idle sprite index to 0
+                    currentIdleSpriteIndex = 0;
+                }
+
+                // Change the sprite to the current idle sprite
+                spriteRenderer.sprite = idleSprites[currentIdleSpriteIndex];
+
+                // Update the last idle sprite change time
+                lastIdleSpriteChangeTime = Time.time;
+            }
+        }
+        // If the player is pressing the "D" key
+        else if (Input.GetKey(KeyCode.D))
+        {
+            // Change the sprite to the new sprite
+            spriteRenderer.sprite = newSprite;
+        }
+        // If the player is pressing the "A" key
+        else if (Input.GetKey(KeyCode.A))
+        {
+            // Change the sprite to the another sprite
+            spriteRenderer.sprite = anotherSprite;
+        }
+    }
+}
+```
+## CameraFollow
+```cs
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CameraFollow : MonoBehaviour
+{
+    public Transform target; // the target that the camera should follow
+    public float smoothing = 5f; // the smoothing factor for the camera movement
+
+    Vector3 offset; // the initial offset between the camera and the target
+
+    void Start()
+    {
+        // Calculate the initial offset
+        offset = transform.position - target.position;
+    }
+
+    void FixedUpdate()
+    {
+        // Create a position that the camera should be in
+        Vector3 targetCamPos = target.position + offset;
+
+        // Smoothly move the camera towards that position
+        transform.position = Vector3.Lerp(transform.position, targetCamPos, smoothing * Time.deltaTime);
+    }
+}
+```
+## Respawn
+```cs
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Teleporter : MonoBehaviour
+{
+    public Transform respawnPoint; // the position to respawn the player at
+
+    void Update()
+    {
+        // Check if the player has fallen off the platform
+        if (transform.position.y < -50f)
+        {
+            // Teleport the player back to the respawn point
+            transform.position = respawnPoint.position;
+        }
+        
+    }
+}
+```
