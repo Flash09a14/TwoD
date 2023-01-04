@@ -7,167 +7,115 @@ It's an action 2D platformer. You start on a platform that has obstacles and ene
 Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending on level).
 
 # Code (so far)
-## Movement
+## Movement and Animation
 ```cs
-// Modules
 using UnityEngine;
 
-// Public script class
 public class Movement : MonoBehaviour
 {
-    // Declaring variables
-    // Speed
     public float speed = 10.0f;
-    // Jump force
     public float jumpForce = 10.0f;
-    // Air drag
     public float airDrag = 0.1f;
-    
-    // Referencing Rigidbody
     private Rigidbody2D rb;
-    // Boolean to check if we're grounded
     private bool isGrounded = false;
-    // Radius of the ground check
     private float groundCheckRadius = 0.2f;
-    // Layer mask for ground
     public LayerMask groundLayer;
-    // Transform of a ground check game object
     public Transform groundCheck;
-    
-    // Start, updates only at the first frame
+
+    public Sprite rightSprite;
+    public Sprite leftSprite;
+    public Sprite jumpSprite;
+    public Sprite fallSprite;
+    public Sprite fireSprite; // new variable for the sprite when fire1 is pressed
+    public float animationMaxSpeed = 0.5f;
+
+    public Sprite[] idleSprites; // list of idle sprites
+    private int idleSpriteIndex = 0; // counter to iterate through the list of idle sprites
+    public float idleSpriteInterval = 0.5f; // interval at which to cycle through the idle sprites (adjustable through a public variable)
+    private float nextIdleSprite = 0f; // time at which to change the idle sprite
+
+    private SpriteRenderer spriteRenderer;
+
     void Start()
     {
-        // Assigning rigidbody to a variable
         rb = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        spriteRenderer.sprite = idleSprites[0]; // set the initial sprite to the first element in the list
     }
-    
-    // Update, Updates per frame
+
     void Update()
     {
-        // Checks if grounded, it uses the game object that is directly under the player to check if it's in contact with the ground.
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        // Axes
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
-        // Movement vector, moves the player along the axes (x, y)
         Vector2 movement = new Vector2(moveHorizontal * Time.deltaTime, moveVertical * Time.deltaTime);
 
-        // Rigidbody multiplies the movement vector with the speed variable
         rb.AddForce(movement * speed);
-        // Setting rigidbody drag to aurDrag variable
         rb.drag = airDrag;
 
-        // Checks for jump input. Only gets called if you are grounded
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (moveHorizontal > 0)
         {
-            // Adds an impulse force upwards
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            spriteRenderer.sprite = rightSprite;
         }
-    }
-}
-```
-
-## Animation
-```cs
-using UnityEngine;
-
-public class AnimChange : MonoBehaviour
-{
-    // An array of sprites that we want to cycle through when the character is idle
-    public Sprite[] idleSprites;
-
-    // The sprite that we want to switch to when the "D" key is pressed
-    public Sprite newSprite;
-
-    // The sprite that we want to switch to when the "A" key is pressed
-    public Sprite anotherSprite;
-
-    // The delay between each sprite it cycles through (in seconds)
-    public float delay = 1.5f;
-
-    // A reference to the sprite renderer component
-    private SpriteRenderer spriteRenderer;
-
-    // The current index in the idleSprites array
-    private int currentIdleSpriteIndex = 0;
-
-    // The time that the current idle sprite was last changed
-    private float lastIdleSpriteChangeTime;
-
-    void Start()
-    {
-        // Get a reference to the sprite renderer component
-        spriteRenderer = GetComponent<SpriteRenderer>();
-    }
-
-    void Update()
-    {
-        // If the player is not pressing the "D" key or the "A" key
-        if (!Input.GetKey(KeyCode.D) && !Input.GetKey(KeyCode.A))
+        else if (moveHorizontal < 0)
         {
-            // If it has been the specified delay since the last time the idle sprite was changed
-            if (Time.time - lastIdleSpriteChangeTime > delay)
+            spriteRenderer.sprite = leftSprite;
+        }
+        else
+        {
+            spriteRenderer.sprite = idleSprites[idleSpriteIndex]; // set the sprite to the current element in the list of idle sprites
+            if (Time.time > nextIdleSprite) // check if it's time to change the idle sprite
             {
-                // Increment the current idle sprite index
-                currentIdleSpriteIndex++;
-
-                // If the current idle sprite index is greater than or equal to the length of the idleSprites array
-                if (currentIdleSpriteIndex >= idleSprites.Length)
+                idleSpriteIndex++; // increment the counter
+                if (idleSpriteIndex >= idleSprites.Length) // if the counter exceeds the number of idle sprites, set it back to zero
                 {
-                    // Reset the current idle sprite index to 0
-                    currentIdleSpriteIndex = 0;
+                    idleSpriteIndex = 0;
                 }
-
-                // Change the sprite to the current idle sprite
-                spriteRenderer.sprite = idleSprites[currentIdleSpriteIndex];
-
-                // Update the last idle sprite change time
-                lastIdleSpriteChangeTime = Time.time;
+                nextIdleSprite = Time.time + idleSpriteInterval; // set the time for the next sprite change
             }
         }
-        // If the player is pressing the "D" key
-        else if (Input.GetKey(KeyCode.D))
+
+        if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            // Change the sprite to the new sprite
-            spriteRenderer.sprite = newSprite;
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            spriteRenderer.sprite = jumpSprite;
         }
-        // If the player is pressing the "A" key
-        else if (Input.GetKey(KeyCode.A))
+        else if (!isGrounded)
         {
-            // Change the sprite to the another sprite
-            spriteRenderer.sprite = anotherSprite;
+            spriteRenderer.sprite = fallSprite;
+        }
+
+        // Replace the sprite while fire1 is held
+        if (Input.GetButton("Fire1"))
+        {
+            if (Mathf.Abs(rb.velocity.x) < animationMaxSpeed && isGrounded) // check if player is at a specific adjustable velocity and grounded
+            {
+                spriteRenderer.sprite = fireSprite;
+            }
         }
     }
 }
 ```
 ## CameraFollow
 ```cs
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
-    public Transform target; // the target that the camera should follow
-    public float smoothing = 5f; // the smoothing factor for the camera movement
+    public Transform target; // The target that the camera should follow
+    public float smoothTime = 0.3f; // The time it takes for the camera to catch up with the target's position
 
-    Vector3 offset; // the initial offset between the camera and the target
+    private Vector3 velocity = Vector3.zero; // The velocity at which the camera should move
 
-    void Start()
+    void LateUpdate()
     {
-        // Calculate the initial offset
-        offset = transform.position - target.position;
-    }
+        // Calculate the new position for the camera
+        Vector3 newPos = target.position;
 
-    void FixedUpdate()
-    {
-        // Create a position that the camera should be in
-        Vector3 targetCamPos = target.position + offset;
-
-        // Smoothly move the camera towards that position
-        transform.position = Vector3.Lerp(transform.position, targetCamPos, smoothing * Time.deltaTime);
+        // Smoothly move the camera towards the new position
+        transform.position = Vector3.SmoothDamp(transform.position, newPos, ref velocity, smoothTime);
     }
 }
 ```
@@ -192,5 +140,62 @@ public class Teleporter : MonoBehaviour
         
     }
 }
-```
 
+```
+## Projectile Destroy
+```cs
+using UnityEngine;
+
+public class Projectile : MonoBehaviour
+{
+    private void OnCollisionEnter2D(UnityEngine.Collision2D collision)
+    {
+        // Destroy the projectile when it collides with a surface
+        Destroy(gameObject);
+    }
+}
+```
+## Gun Script (Shooting Script)
+```cs
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GunScript : MonoBehaviour
+{
+    public GameObject projectilePrefab; // Drag and drop the projectile prefab in the inspector
+    public float fireRate = 1f;
+    public float nextFire = 0f;
+    public float velocity = 50f;
+
+    void Update()
+    {
+        // Get the mouse position in world coordinates
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0;
+
+        // Fire the projectile when the player left clicks the mouse
+        if (Input.GetMouseButton(0) && Time.time > nextFire)
+        {
+            nextFire = Time.time + fireRate;
+            FireProjectile(mousePos);
+        }
+    }
+
+    void FireProjectile(Vector3 targetPos)
+    {
+        // Create an instance of the projectile prefab at the position and rotation of the player
+        GameObject projectile = Instantiate(projectilePrefab, transform.position, transform.rotation);
+
+        // Calculate the direction to the target position
+        Vector3 direction = targetPos - transform.position;
+
+        // Normalize the direction to get a unit vector
+        direction = direction.normalized;
+
+        // Add velocity to the projectile in the direction of the target position
+        Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
+        rb.velocity = direction * velocity;
+    }
+}
+```
