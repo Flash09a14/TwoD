@@ -19,6 +19,7 @@ Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending 
 ###### Movement: Rigidbody, GameObject-type detection.
 ###### Shooting: Rigidbody projectiles, GameObject-based collision
 ###### Enemy Shooting: Rigidbody projectiles, GameObject-based collision, Raycast-type obstruction detection
+###### Animation: Script-based sprite replacement
 # Code (so far)
 ## Movement and Animation
 ```cs
