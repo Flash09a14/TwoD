@@ -13,6 +13,8 @@ Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending 
 ###### AI: Added obstruction detection for enemy AI
 ###### Movement: Improved air control
 ###### SFX: Added jump, shoot, and enemy shooting sound effects
+## Last Updated (Github and Game)
+#### 09/01/2023 (0.0.2)
 # Code (so far)
 ## Movement and Animation
 ```cs
