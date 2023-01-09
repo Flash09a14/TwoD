@@ -16,9 +16,9 @@ Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending 
 ## Last Updated (Github and Game)
 #### 09/01/2023 (0.0.2)
 ## Methods:
-### Movement: Rigidbody, GameObject-type detection.
-### Shooting: Rigidbody projectiles, GameObject-based collision
-### Enemy Shooting: Rigidbody projectiles, GameObject-based collision, Raycast-type obstruction detection
+###### Movement: Rigidbody, GameObject-type detection.
+###### Shooting: Rigidbody projectiles, GameObject-based collision
+###### Enemy Shooting: Rigidbody projectiles, GameObject-based collision, Raycast-type obstruction detection
 # Code (so far)
 ## Movement and Animation
 ```cs
