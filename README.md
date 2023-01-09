@@ -12,6 +12,7 @@ Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending 
 ###### AI: Added Sentry enemy
 ###### AI: Added obstruction detection for enemy AI
 ###### Movement: Improved air control
+###### SFX: Added jump, shoot, and enemy shooting sound effects
 # Code (so far)
 ## Movement and Animation
 ```cs
