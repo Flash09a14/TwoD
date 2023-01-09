@@ -5,7 +5,13 @@
 It's an action 2D platformer. You start on a platform that has obstacles and enemies blocking the way from the exit portal to the next level. You unlock an arsenal while you play the game. Each weapon has a unique perk that shape game mechanics completely. As you progress the levels get harder and harder, unlocking different perks, mechanics, and enemies. The arsenal is huge and has many variations, each weapon has interactions with one another and the environment.
 ### Art style:
 Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending on level).
-
+## Version:
+#### 0.0.2 (Early Development):
+##### Changes and Patches
+###### Movement: Added double jumping
+###### AI: Added Sentry enemy
+###### AI: Added obstruction detection for enemy AI
+###### Movement: Improved air control
 # Code (so far)
 ## Movement and Animation
 ```cs
@@ -27,6 +33,9 @@ public class Movement : MonoBehaviour
     public Sprite jumpSprite;
     public Sprite fallSprite;
     public Sprite fireSprite; // new variable for the sprite when fire1 is pressed
+    public Sprite leftFireSprite; // new variable for the sprite when fire1 is pressed on the left side
+    public Sprite leftJumpSprite;
+    public Sprite leftFallSprite;
     public float animationMaxSpeed = 0.5f;
 
     public Sprite[] idleSprites; // list of idle sprites
@@ -35,6 +44,8 @@ public class Movement : MonoBehaviour
     private float nextIdleSprite = 0f; // time at which to change the idle sprite
 
     private SpriteRenderer spriteRenderer;
+    public int jumpCounter = 0; // counter for number of jumps made
+    public int maxJumps = 2; // maximum number of jumps allowed
 
     void Start()
     {
@@ -48,7 +59,7 @@ public class Movement : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         float moveHorizontal = Input.GetAxis("Horizontal");
-        float moveVertical = Input.GetAxis("Vertical");
+        float moveVertical = 0;
 
         Vector2 movement = new Vector2(moveHorizontal * Time.deltaTime, moveVertical * Time.deltaTime);
 
@@ -79,20 +90,51 @@ public class Movement : MonoBehaviour
 
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
+            // reset jump counter on ground contact
+            jumpCounter = 0;
+        }
+
+        if (Input.GetButtonDown("Jump") && jumpCounter < maxJumps)
+        {
+            jumpCounter++; // increment jump counter
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-            spriteRenderer.sprite = jumpSprite;
+            if (moveHorizontal < 0)
+            {
+                spriteRenderer.sprite = leftJumpSprite;
+            }
+            else
+            {
+                spriteRenderer.sprite = jumpSprite;
+            }
+
+            // Play the sound effect
+            GetComponent<AudioSource>().Play();
         }
         else if (!isGrounded)
         {
-            spriteRenderer.sprite = fallSprite;
+            if (moveHorizontal < 0)
+            {
+                spriteRenderer.sprite = leftFallSprite;
+            }
+            else
+            {
+                spriteRenderer.sprite = fallSprite;
+            }
         }
 
         // Replace the sprite while fire1 is held
         if (Input.GetButton("Fire1"))
         {
-            if (Mathf.Abs(rb.velocity.x) < animationMaxSpeed && isGrounded) // check if player is at a specific adjustable velocity and grounded
+            if (Mathf.Abs(rb.velocity.x) < animationMaxSpeed) // check if player is at a specific adjustable velocity and grounded
             {
-                spriteRenderer.sprite = fireSprite;
+                if (Input.mousePosition.x < Screen.width / 2) // check if mouse cursor is on the left side
+                {
+                    spriteRenderer.sprite = leftFireSprite;
+                }
+                else
+                {
+                    spriteRenderer.sprite = fireSprite;
+                }
             }
         }
     }
@@ -196,6 +238,74 @@ public class GunScript : MonoBehaviour
         // Add velocity to the projectile in the direction of the target position
         Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
         rb.velocity = direction * velocity;
+    }
+}
+```
+## Enemy Projectile Shooting Script
+```cs
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ProjectileShooter : MonoBehaviour
+{
+    public GameObject projectilePrefab; // drag and drop the projectile prefab in the Inspector
+    public Transform target; // drag and drop the target transform in the Inspector
+
+    public float shootingInterval = 1f; // the time interval between shots, in seconds
+    public float projectileSpeed = 10f; // the speed of the projectile
+
+    private float timeSinceLastShot = 0f; // time elapsed since the last shot
+
+    void Update()
+    {
+        timeSinceLastShot += Time.deltaTime; // increase the time elapsed
+
+        // check if the target is behind cover
+        if (IsTargetBehindCover())
+        {
+            // if the target is behind cover, stop shooting
+            return;
+        }
+
+        // check if it's time to shoot again
+        if (timeSinceLastShot >= shootingInterval)
+        {
+            // reset the time elapsed
+            timeSinceLastShot = 0f;
+
+            // instantiate the projectile at the shooter's position
+            GameObject projectile = Instantiate(projectilePrefab, transform.position, transform.rotation);
+
+            // calculate the direction to the target
+            Vector2 direction = (target.position - transform.position).normalized;
+
+            // set the projectile's velocity
+            projectile.GetComponent<Rigidbody2D>().velocity = direction * projectileSpeed;
+        }
+    }
+
+    bool IsTargetBehindCover()
+    {
+        // check if the target is behind cover by casting a ray from the shooter to the target
+        // and seeing if it hits any colliders
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, target.position - transform.position);
+        return hit.collider != null && hit.collider.gameObject != target.gameObject;
+    }
+}
+```
+## Enemy Projectile Script
+```cs
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class EnemyProjectile : MonoBehaviour
+{   
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Destroy the projectile game object
+        Destroy(gameObject);
     }
 }
 ```
