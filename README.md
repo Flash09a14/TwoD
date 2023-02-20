@@ -1,4 +1,4 @@
-# TwoD (WORK IN PROGRESS GAME)
+# HITSTORM (WORK IN PROGRESS GAME)
 ## A 2D unity game I'm working on, updates will display here
 ### About
 #### Concept:
@@ -6,22 +6,25 @@ It's an action 2D platformer. You start on a platform that has obstacles and ene
 ### Art style:
 Vibrant poly and pixel art with a gray/dusty color pallette (May vary depending on level).
 ## Version:
-#### 0.0.2 (Early Development):
+#### 0.0.7 (Early Development):
 ##### Changes and Patches
-###### Movement: Added double jumping
-###### AI: Added Sentry enemy
-###### AI: Added obstruction detection for enemy AI
-###### Movement: Improved air control
-###### SFX: Added jump, shoot, and enemy shooting sound effects
+###### Movement: Improved air control.
+###### Mechanics: Added jump pads. Jump pads can be found throughout the map and give a large vertical impulse to objects, enemies, and the player.
+###### Mechanics: Improved weapon handling.
+###### Mechanics: Added double jump powerup. Now, you must find a powerup on the floor to temporarily double jump (powerups are infinitely stackable).
+###### Mechanics: Added speed boost powerup. Just like the double jump powerup, it boosts your speed temporarily and is stackable.
+###### Mechanics: Added enemy-side damage handling (player-side still in progress).
+###### Mechanics: Added portals (usually will be found in levels for puzzles, level travel, or object interaction. (early beta).
+###### Art: Completely changed player model and animation.
+###### Art: Changed sentry model.
+###### Art: Made setting more vibrant.
+###### Code: Reworked and simplified a lot of code (more info on code updates)
+###### Code: Added seperate scripts for different handles for simplicity and better memory.
+###### Extra notes: Disabled Sentry enemy temporarily due to technical issues and works of new enemies.
 ## Last Updated (Github and Game)
-#### 09/01/2023 (0.0.2)
-## Methods:
-###### Movement: Rigidbody, GameObject-type detection.
-###### Shooting: Rigidbody projectiles, GameObject-based collision
-###### Enemy Shooting: Rigidbody projectiles, GameObject-based collision, Raycast-type obstruction detection
-###### Animation: Script-based sprite replacement
+#### 20/02/2023 (0.0.7)
 # Code (so far)
-## Movement and Animation
+## Movement
 ```cs
 using UnityEngine;
 
@@ -35,34 +38,17 @@ public class Movement : MonoBehaviour
     private float groundCheckRadius = 0.2f;
     public LayerMask groundLayer;
     public Transform groundCheck;
-
-    public Sprite rightSprite;
-    public Sprite leftSprite;
-    public Sprite jumpSprite;
-    public Sprite fallSprite;
-    public Sprite fireSprite; // new variable for the sprite when fire1 is pressed
-    public Sprite leftFireSprite; // new variable for the sprite when fire1 is pressed on the left side
-    public Sprite leftJumpSprite;
-    public Sprite leftFallSprite;
-    public float animationMaxSpeed = 0.5f;
-
-    public Sprite[] idleSprites; // list of idle sprites
-    private int idleSpriteIndex = 0; // counter to iterate through the list of idle sprites
-    public float idleSpriteInterval = 0.5f; // interval at which to cycle through the idle sprites (adjustable through a public variable)
-    private float nextIdleSprite = 0f; // time at which to change the idle sprite
-
-    private SpriteRenderer spriteRenderer;
-    public int jumpCounter = 0; // counter for number of jumps made
-    public int maxJumps = 2; // maximum number of jumps allowed
+    private int jumpCounter = 0;
+    public int maxJumps = 2; 
+    public float powerUpDuration = 5.0f;
+    private float powerUpTimer = 0.0f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        spriteRenderer.sprite = idleSprites[0]; // set the initial sprite to the first element in the list
     }
 
-    void Update()
+    void Update() 
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
@@ -74,78 +60,42 @@ public class Movement : MonoBehaviour
         rb.AddForce(movement * speed);
         rb.drag = airDrag;
 
-        if (moveHorizontal > 0)
-        {
-            spriteRenderer.sprite = rightSprite;
-        }
-        else if (moveHorizontal < 0)
-        {
-            spriteRenderer.sprite = leftSprite;
-        }
-        else
-        {
-            spriteRenderer.sprite = idleSprites[idleSpriteIndex]; // set the sprite to the current element in the list of idle sprites
-            if (Time.time > nextIdleSprite) // check if it's time to change the idle sprite
-            {
-                idleSpriteIndex++; // increment the counter
-                if (idleSpriteIndex >= idleSprites.Length) // if the counter exceeds the number of idle sprites, set it back to zero
-                {
-                    idleSpriteIndex = 0;
-                }
-                nextIdleSprite = Time.time + idleSpriteInterval; // set the time for the next sprite change
-            }
-        }
-
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            // reset jump counter on ground contact
             jumpCounter = 0;
         }
 
         if (Input.GetButtonDown("Jump") && jumpCounter < maxJumps)
         {
-            jumpCounter++; // increment jump counter
+            jumpCounter++;
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-            if (moveHorizontal < 0)
-            {
-                spriteRenderer.sprite = leftJumpSprite;
-            }
-            else
-            {
-                spriteRenderer.sprite = jumpSprite;
-            }
-
             // Play the sound effect
             GetComponent<AudioSource>().Play();
         }
-        else if (!isGrounded)
+        if (powerUpTimer > 0)
         {
-            if (moveHorizontal < 0)
-            {
-                spriteRenderer.sprite = leftFallSprite;
-            }
-            else
-            {
-                spriteRenderer.sprite = fallSprite;
-            }
+            powerUpTimer -= Time.deltaTime;
         }
-
-        // Replace the sprite while fire1 is held
-        if (Input.GetButton("Fire1"))
+        else if (powerUpTimer <= 0)
         {
-            if (Mathf.Abs(rb.velocity.x) < animationMaxSpeed) // check if player is at a specific adjustable velocity and grounded
-            {
-                if (Input.mousePosition.x < Screen.width / 2) // check if mouse cursor is on the left side
-                {
-                    spriteRenderer.sprite = leftFireSprite;
-                }
-                else
-                {
-                    spriteRenderer.sprite = fireSprite;
-                }
-            }
+            maxJumps = 1;
+            speed = 4500;
         }
     }
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("PowerUpJump"))
+        {
+            maxJumps += 1;
+            powerUpTimer = powerUpDuration;
+        }
+        else if (other.CompareTag("PowerUpSpeed"))
+        {
+            speed += 2000;
+            powerUpTimer = powerUpDuration;
+        }
+    }
+
 }
 ```
 ## CameraFollow
@@ -154,18 +104,17 @@ using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
-    public Transform target; // The target that the camera should follow
-    public float smoothTime = 0.3f; // The time it takes for the camera to catch up with the target's position
+    public Transform target;
 
-    private Vector3 velocity = Vector3.zero; // The velocity at which the camera should move
+    public float smoothSpeed = 0.125f;
+    public Vector3 offset;
+
+    private Vector3 velocity = Vector3.zero;
 
     void LateUpdate()
     {
-        // Calculate the new position for the camera
-        Vector3 newPos = target.position;
-
-        // Smoothly move the camera towards the new position
-        transform.position = Vector3.SmoothDamp(transform.position, newPos, ref velocity, smoothTime);
+        Vector3 desiredPosition = target.position + offset;
+        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothSpeed);
     }
 }
 ```
@@ -198,12 +147,22 @@ using UnityEngine;
 
 public class Projectile : MonoBehaviour
 {
+    public int damage = 10;
+    private void Start()
+    {
+        // Ignore collisions between the projectile and objects with the "Player" layer
+        int projectileLayer = gameObject.layer;
+        int playerLayer = LayerMask.NameToLayer("Player");
+        Physics2D.IgnoreLayerCollision(projectileLayer, playerLayer, true);
+    }
+
     private void OnCollisionEnter2D(UnityEngine.Collision2D collision)
     {
         // Destroy the projectile when it collides with a surface
         Destroy(gameObject);
     }
 }
+
 ```
 ## Gun Script (Shooting Script)
 ```cs
@@ -246,74 +205,195 @@ public class GunScript : MonoBehaviour
         // Add velocity to the projectile in the direction of the target position
         Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
         rb.velocity = direction * velocity;
+
+        // Play the sound effect
+        GetComponent<AudioSource>().Play();
     }
 }
 ```
-## Enemy Projectile Shooting Script
+## Audio Player for Powerups
 ```cs
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class ProjectileShooter : MonoBehaviour
+public class AudioPlayer : MonoBehaviour
 {
-    public GameObject projectilePrefab; // drag and drop the projectile prefab in the Inspector
-    public Transform target; // drag and drop the target transform in the Inspector
+    public AudioClip soundEffect;
+    public float destroyDelay = 1f;
+    public GameObject player;
 
-    public float shootingInterval = 1f; // the time interval between shots, in seconds
-    public float projectileSpeed = 10f; // the speed of the projectile
+    private AudioSource audioSource;
+    private bool hasTriggered;
 
-    private float timeSinceLastShot = 0f; // time elapsed since the last shot
-
-    void Update()
+    private void Start()
     {
-        timeSinceLastShot += Time.deltaTime; // increase the time elapsed
-
-        // check if the target is behind cover
-        if (IsTargetBehindCover())
-        {
-            // if the target is behind cover, stop shooting
-            return;
-        }
-
-        // check if it's time to shoot again
-        if (timeSinceLastShot >= shootingInterval)
-        {
-            // reset the time elapsed
-            timeSinceLastShot = 0f;
-
-            // instantiate the projectile at the shooter's position
-            GameObject projectile = Instantiate(projectilePrefab, transform.position, transform.rotation);
-
-            // calculate the direction to the target
-            Vector2 direction = (target.position - transform.position).normalized;
-
-            // set the projectile's velocity
-            projectile.GetComponent<Rigidbody2D>().velocity = direction * projectileSpeed;
-        }
+        audioSource = GetComponent<AudioSource>();
     }
 
-    bool IsTargetBehindCover()
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        // check if the target is behind cover by casting a ray from the shooter to the target
-        // and seeing if it hits any colliders
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, target.position - transform.position);
-        return hit.collider != null && hit.collider.gameObject != target.gameObject;
+        if (!hasTriggered && other.gameObject == player)
+        {
+            audioSource.PlayOneShot(soundEffect);
+            Destroy(gameObject, destroyDelay);
+            hasTriggered = true;
+        }
     }
 }
 ```
-## Enemy Projectile Script
+## Damage Handling (Enemy-side)
 ```cs
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyProjectile : MonoBehaviour
-{   
+public class DamageHandler : MonoBehaviour
+{
+    public int health = 100;
+    
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Destroy the projectile game object
+        var projectile = collision.gameObject.GetComponent<Projectile>();
+        if (collision.gameObject.CompareTag("Projectile"))
+        {
+            TakeDamage(collision.gameObject.GetComponent<Projectile>().damage);
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        health -= damage;
+        if (health <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
         Destroy(gameObject);
     }
 }
 ```
+## Portals (Early Beta)
+```cs
+using UnityEngine;
+
+public class Portal : MonoBehaviour
+{
+    public Transform teleportTarget;
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        other.transform.position = teleportTarget.position;
+    }
+}
+```
+Animation Handling
+```cs
+using UnityEngine;
+using System.Collections;
+
+public class SpriteHandler : MonoBehaviour
+{
+    public Sprite[] idleSprites;
+    private int idleIndex = 0;
+    public float idleInterval = 0.7f;
+    private float idleTimer = 0;
+    public Sprite jumpSprite;
+    public Sprite leftSprite;
+    public Sprite rightSprite;
+    public Sprite fallSprite;
+    public Sprite fire1LeftSprite;
+    public Sprite fire1RightSprite;
+    private SpriteRenderer sr;
+    private Rigidbody2D rb;
+    private bool isJumping = false;
+    private bool isFalling = false;
+    private bool isFiring = false;
+    private bool shouldReturnToIdle = false;
+
+    void Start()
+    {
+        sr = GetComponent<SpriteRenderer>();
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    void Update()
+    {
+        if (Input.GetButtonDown("Jump"))
+        {
+            sr.sprite = jumpSprite;
+            isJumping = true;
+            shouldReturnToIdle = true;
+        }
+        else if (Input.GetAxis("Horizontal") < 0)
+        {
+            sr.sprite = leftSprite;
+            shouldReturnToIdle = true;
+        }
+        else if (Input.GetAxis("Horizontal") > 0)
+        {
+            sr.sprite = rightSprite;
+            shouldReturnToIdle = true;
+        }
+        else if (rb.velocity.y < 0)
+        {
+            sr.sprite = fallSprite;
+            isFalling = true;
+            shouldReturnToIdle = true;
+        }
+        else if (Input.GetButtonDown("Fire1"))
+        {
+            if (Input.mousePosition.x < Screen.width / 2)
+            {
+                sr.sprite = fire1LeftSprite;
+            }
+            else
+            {
+                sr.sprite = fire1RightSprite;
+            }
+            isFiring = true;
+            shouldReturnToIdle = true;
+        }
+        else if (!isJumping && !isFalling && !isFiring)
+        {
+            if (shouldReturnToIdle)
+            {
+                sr.sprite = idleSprites[idleIndex];
+                shouldReturnToIdle = false;
+            }
+            else
+            {
+                idleTimer += Time.deltaTime;
+
+                if (idleTimer >= idleInterval)
+                {
+                    idleTimer = 0;
+                    idleIndex++;
+                    if (idleIndex >= idleSprites.Length)
+                    {
+                        idleIndex = 0;
+                    }
+
+                    sr.sprite = idleSprites[idleIndex];
+                }
+            }
+        }
+
+        if (rb.velocity.y == 0)
+        {
+            isJumping = false;
+            isFalling = false;
+        }
+        if (Input.GetButtonUp("Fire1"))
+        {
+            isFiring = false;
+        }
+    }
+}
+```
+
+## Enemy Projectile Shooting Script
+### Temporarily disabled due to technical issues
+## Enemy Projectile Script
+### Temporarily disabled due to technical issues
